@@ -231,11 +231,10 @@
 
     .ele-btn.active { background: var(--bad-soft); border-color: var(--bad); color: #ff9c9c; }
 
-    /* Gemini Öğretici Panel */
     .ai-box {
       margin-top: 16px;
-      background: rgba(79, 134, 247, 0.08);
-      border: 1px solid rgba(79, 134, 247, 0.38);
+      background: rgba(79, 134, 247, 0.10);
+      border: 1px solid rgba(79, 134, 247, 0.45);
       border-radius: 12px;
       padding: 14px;
     }
@@ -254,12 +253,6 @@
       color: #eef3ff;
       line-height: 1.65;
       white-space: pre-wrap;
-    }
-
-    .ai-content h3, .ai-content h4 {
-      margin: 12px 0 4px;
-      color: #9fc0ff;
-      font-size: 0.98rem;
     }
 
     .ai-followup {
@@ -339,14 +332,13 @@
       </nav>
     </header>
 
-    <!-- GEMINI API AYAR ÇUBUĞU -->
-    <section class="card" style="padding:12px 18px; border-color: rgba(79,134,247,0.4);">
+    <section class="card" style="padding:12px 18px; border-color: rgba(79,134,247,0.45);">
       <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px;">
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-          <span class="badge badge-ai">Gemini Öğretici Mod</span>
-          <span id="apiKeyStatus" style="font-size:0.82rem; color:var(--muted);">API anahtarı kayıtlı değil (Google AI Studio'dan ücretsiz alabilirsin)</span>
+          <span class="badge badge-ai">Gemini Entegrasyonu</span>
+          <span id="apiKeyStatus" style="font-size:0.82rem; color:var(--muted);">API anahtarı kayıtlı değil</span>
         </div>
-        <button type="button" class="btn btn-ghost btn-sm" id="btnToggleApiBox">API Anahtarı Ayarla</button>
+        <button type="button" class="btn btn-ai btn-sm" id="btnToggleApiBox">Gemini API Anahtarı Ayarla</button>
       </div>
       <div id="apiKeyBox" class="hidden" style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border);">
         <div style="display:grid; grid-template-columns: 1fr 190px auto; gap:8px;">
@@ -358,12 +350,11 @@
           <button type="button" class="btn btn-ai btn-sm" id="btnSaveApiKey">Kaydet</button>
         </div>
         <p style="margin:6px 0 0; font-size:0.78rem; color:var(--muted);">
-          Anahtar yalnızca bu cihazın tarayıcı hafızasında (localStorage) saklanır, dışarıya gönderilmez.
+          Google AI Studio'dan aldığın ücretsiz anahtar yalnızca bu cihazın tarayıcı hafızasında (localStorage) tutulur.
         </p>
       </div>
     </section>
 
-    <!-- DERS SEÇİCİ -->
     <section class="card" style="padding:14px 18px;">
       <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px;">
         <strong style="font-size:0.95rem;">Ders Seçici</strong>
@@ -372,7 +363,6 @@
       <div id="courseBar" class="course-bar"></div>
     </section>
 
-    <!-- ANA PANEL -->
     <section id="view-home">
       <div class="kpi-grid">
         <div class="kpi-card">
@@ -467,11 +457,13 @@
       </div>
     </section>
 
-    <!-- SINAV EKRANI -->
     <section id="view-exam" class="hidden">
       <div id="noActiveExam" class="card" style="text-align:center; padding:36px;">
-        <p style="color:var(--muted); margin-top:0;">Aktif bir test oturumu yok.</p>
-        <button class="btn" id="btnGoHomeFromExam">Ana Panele Dön ve Test Başlat</button>
+        <p style="color:var(--muted); margin-top:0;">Henüz bir test başlatılmadı.</p>
+        <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
+          <button class="btn btn-ai" id="btnQuickStartExamTab">20 Soruluk Çalışma Testi Aç</button>
+          <button class="btn btn-ghost" id="btnGoHomeFromExam">Ana Panele Dön</button>
+        </div>
       </div>
 
       <div id="activeExamBox" class="exam-layout hidden">
@@ -495,7 +487,6 @@
       </div>
     </section>
 
-    <!-- HOCANIN SINAV SPOTLARI -->
     <section id="view-spots" class="hidden">
       <div class="card">
         <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px;">
@@ -509,7 +500,6 @@
       </div>
     </section>
 
-    <!-- ANALİZ & GEÇMİŞ -->
     <section id="view-analysis" class="hidden">
       <div class="card">
         <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
@@ -541,7 +531,7 @@
     let selectedTopics = new Set(SORULAR.map(q => q.alt_konu || "Genel"));
     let searchQuery = "";
     let timerInterval = null;
-    let aiCache = {}; // { [qId]: { loading: bool, text: string, history: [] } }
+    let aiCache = {};
 
     function defaultState() {
       return { stats: {}, draft: null, activeSession: null, history: [] };
@@ -564,7 +554,6 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }
 
-    // Gemini API Ayarları
     function refreshApiStatus() {
       const key = localStorage.getItem(API_KEY_STORAGE) || "";
       const model = localStorage.getItem(MODEL_STORAGE) || "gemini-2.5-flash";
@@ -572,10 +561,10 @@
       document.getElementById("geminiModelSelect").value = model;
       const statusEl = document.getElementById("apiKeyStatus");
       if (key.trim()) {
-        statusEl.textContent = `Aktif (${model}) — Sayfa içi konu anlatımı hazır`;
+        statusEl.textContent = `Aktif (${model}) — Soru ekranında sayfa içi anlatım hazır`;
         statusEl.style.color = "#9fc0ff";
       } else {
-        statusEl.textContent = "API anahtarı kayıtlı değil (Sayfa içi anlatım için anahtar gir veya 'Gemini'de Aç' butonunu kullan)";
+        statusEl.textContent = "API anahtarı kayıtlı değil (Sayfa içi anlatım için anahtar ekle veya 'Gemini'de Aç' butonunu kullan)";
         statusEl.style.color = "var(--muted)";
       }
     }
@@ -791,6 +780,11 @@
       switchView("exam");
     }
 
+    document.getElementById("btnQuickStartExamTab").addEventListener("click", () => {
+      const scopeName = activeCourse === "ALL" ? "Tüm Dersler" : activeCourse;
+      startSession(`${scopeName} — Hızlı Çalışma`, getCourseQuestions(), "study", "20", "order");
+    });
+
     document.getElementById("btnStartCustom").addEventListener("click", () => {
       const filtered = getFilteredQuestions();
       const mode = document.getElementById("modeSelect").value;
@@ -901,7 +895,7 @@
       const metin = `${q.ders || ""} ${q.alt_konu || ""} ${q.soru || ""}`.toLowerCase();
       const eslesenler = HOCA_SPOTLARI.filter(sp => {
         const k = sp.konu.toLowerCase();
-        return metin.includes(k) || k.split(/\s+/).some(w => w.length > 4 && metin.includes(w));
+        return metin.includes(k) || k.split(" ").some(w => w.length > 4 && metin.includes(w));
       });
       return eslesenler.slice(0, 2);
     }
@@ -909,17 +903,12 @@
     function buildTutorPrompt(q) {
       const sikMetinleri = Object.entries(q.siklar || {})
         .map(([h, o]) => `${h}) ${o.metin}${o.aciklama ? ` [Not: ${o.aciklama}]` : ""}`)
-        .join("
-");
+        .join("\n");
 
       const spotlar = ilgiliSpotlariBul(q);
       const spotMetni = spotlar.length > 0
-        ? "
-
-Ders Notundaki İlgili Sınav Spotları:
-" +
-          spotlar.map(s => `- ${s.konu}: ${s.maddeler.join(" | ")}`).join("
-")
+        ? "\n\nDers Notundaki İlgili Sınav Spotları:\n" +
+          spotlar.map(s => `- ${s.konu}: ${s.maddeler.join(" | ")}`).join("\n")
         : "";
 
       return `Sen tıp fakültesi Dönem 3 öğrencisine ders anlatan deneyimli bir klinik/temel bilimler hocasısın.
@@ -940,11 +929,9 @@ Lütfen şu 4 başlıkla açık, akıcı ve akılda kalıcı şekilde anlat:
     }
 
     function formatAiText(raw) {
-      const escaped = escapeHtml(raw || "");
-      return escaped
-        .replace(/^###\s+(.+)$/gm, "<h4>$1</h4>")
-        .replace(/^##\s+(.+)$/gm, "<h3>$1</h3>")
-        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+      let txt = escapeHtml(raw || "");
+      txt = txt.split("**").map((part, i) => (i % 2 === 1 ? `<strong>${part}</strong>` : part)).join("");
+      return txt;
     }
 
     window.askGeminiTutor = async function(qId, followUpText = "") {
@@ -957,7 +944,7 @@ Lütfen şu 4 başlıkla açık, akıcı ve akılda kalıcı şekilde anlat:
       if (!apiKey) {
         document.getElementById("apiKeyBox").classList.remove("hidden");
         document.getElementById("geminiApiKeyInput").focus();
-        alert("Sayfa içi anlatım için üstteki kutuya Gemini API anahtarını gir veya 'Gemini'de Aç' butonunu kullan.");
+        alert("Sayfa içi anlatım için üstteki kutuya Gemini API anahtarını gir veya 'Promptu Kopyala & Gemini'de Aç' butonunu kullan.");
         return;
       }
 
@@ -968,10 +955,7 @@ Lütfen şu 4 başlıkla açık, akıcı ve akılda kalıcı şekilde anlat:
 
       try {
         const promptText = followUpText
-          ? `Önceki konu anlatımı bağlamında öğrencinin takip sorusu:
-${followUpText}
-
-Lütfen kısa, net ve öğretici şekilde yanıtla.`
+          ? `Önceki konu anlatımı bağlamında öğrencinin takip sorusu:\n${followUpText}\n\nLütfen kısa, net ve öğretici şekilde yanıtla.`
           : buildTutorPrompt(q);
 
         const contents = followUpText && entry.history.length > 0
@@ -996,12 +980,7 @@ Lütfen kısa, net ve öğretici şekilde yanıtla.`
           { role: "model", parts: [{ text: answer }] }
         ];
         entry.text = followUpText
-          ? `${entry.text}
-
----
-**Sen:** ${followUpText}
-
-${answer}`
+          ? `${entry.text}\n\n---\n**Sen:** ${followUpText}\n\n${answer}`
           : answer;
       } catch (err) {
         entry.text = `Hata oluştu: ${err.message}`;
@@ -1113,7 +1092,6 @@ ${answer}`
         <div class="q-stem">${escapeHtml(q.soru)}</div>
         <div>${optionsHtml}</div>
 
-        <!-- GEMINI ÖĞRETİCİ KONU ANLATIMI PANELİ -->
         <div class="ai-box">
           <div class="ai-header">
             <strong style="font-size:0.92rem; color:#9fc0ff;">Gemini Öğretici Konu Anlatımı &amp; Çözüm</strong>
